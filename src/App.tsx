@@ -4,6 +4,7 @@ import { INITIAL_FINANCIAL_PLATFORMS, FINANCIAL_CATEGORIES } from './data/financ
 import { Header } from './components/Header';
 import { Hero } from './components/Hero';
 import { ToolGrid, SortOption } from './components/ToolGrid';
+import { RecommendedSection } from './components/RecommendedSection';
 import { ToolModal } from './components/ToolModal';
 import { SubscribeModal } from './components/SubscribeModal';
 import { SubmitToolModal } from './components/SubmitToolModal';
@@ -14,7 +15,15 @@ import { SubmitReviewModal } from './components/SubmitReviewModal';
 import { calculateNewRatingAndCount } from './data/platformReviews';
 import { AdminPanel } from './components/AdminPanel';
 import { Footer } from './components/Footer';
-import { AlertCircle } from 'lucide-react';
+import { AdminLogin } from './components/AdminLogin';
+import {
+  subscribeToAdminAuth,
+  signOutAdmin,
+  testConnection,
+  AUTHORIZED_ADMIN_EMAIL,
+} from './services/firebase';
+import { User } from 'firebase/auth';
+import { AlertCircle, Loader2 } from 'lucide-react';
 
 const checkIsAdminRoute = (): boolean => {
   if (typeof window === 'undefined') return false;
@@ -37,6 +46,34 @@ export default function App() {
   const [currentView, setCurrentView] = useState<'public' | 'admin'>(() => {
     return checkIsAdminRoute() ? 'admin' : 'public';
   });
+
+  // Firebase Admin Authentication State
+  const [adminUser, setAdminUser] = useState<User | null>(null);
+  const [isAuthChecking, setIsAuthChecking] = useState<boolean>(true);
+  const [unauthorizedError, setUnauthorizedError] = useState<string | null>(null);
+
+  // Initialize Firebase connection check & auth listener
+  useEffect(() => {
+    testConnection();
+
+    const unsubscribe = subscribeToAdminAuth((user, unauthErr) => {
+      setAdminUser(user);
+      if (unauthErr) {
+        setUnauthorizedError(unauthErr);
+      } else {
+        setUnauthorizedError(null);
+      }
+      setIsAuthChecking(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  const handleAdminSignOut = async () => {
+    await signOutAdmin();
+    setAdminUser(null);
+    navigateToPublic();
+  };
 
   // Listen for browser navigation (back/forward, URL change) and secret shortcut
   useEffect(() => {
@@ -607,18 +644,36 @@ export default function App() {
   return (
     <div className="min-h-screen bg-[#F8FAFC] dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col font-sans transition-colors duration-200">
       {currentView === 'admin' ? (
-        <AdminPanel
-          platforms={platforms}
-          categories={categories}
-          onAddCategory={handleAddCategory}
-          onDeleteCategory={handleDeleteCategory}
-          onAddPlatform={handleAdminAddPlatform}
-          onUpdatePlatform={handleAdminUpdatePlatform}
-          onDeletePlatform={handleAdminDeletePlatform}
-          onResetPlatforms={handleAdminResetPlatforms}
-          onBackToPublic={navigateToPublic}
-          onPreviewPlatform={(platform) => setSelectedPlatform(platform)}
-        />
+        isAuthChecking ? (
+          <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center text-slate-300">
+            <Loader2 className="w-8 h-8 animate-spin text-emerald-400 mb-3" />
+            <p className="text-sm font-medium">Verifying Firebase admin session...</p>
+          </div>
+        ) : !adminUser || (adminUser.email || '').toLowerCase().trim() !== AUTHORIZED_ADMIN_EMAIL.toLowerCase().trim() ? (
+          <AdminLogin
+            onLoginSuccess={() => {
+              setUnauthorizedError(null);
+            }}
+            onBackToPublic={navigateToPublic}
+            unauthorizedNotice={unauthorizedError}
+          />
+        ) : (
+          <AdminPanel
+            platforms={platforms}
+            categories={categories}
+            adminEmail={adminUser.email}
+            adminPhotoUrl={adminUser.photoURL}
+            onSignOut={handleAdminSignOut}
+            onAddCategory={handleAddCategory}
+            onDeleteCategory={handleDeleteCategory}
+            onAddPlatform={handleAdminAddPlatform}
+            onUpdatePlatform={handleAdminUpdatePlatform}
+            onDeletePlatform={handleAdminDeletePlatform}
+            onResetPlatforms={handleAdminResetPlatforms}
+            onBackToPublic={navigateToPublic}
+            onPreviewPlatform={(platform) => setSelectedPlatform(platform)}
+          />
+        )
       ) : (
         <>
           {/* Top Header */}
@@ -630,6 +685,10 @@ export default function App() {
             onOpenCalculators={() => setIsCalculatorOpen(true)}
             comparedCount={comparedIds.length}
             onOpenCompare={() => setIsCompareOpen(true)}
+            onNavigateAdmin={adminUser ? navigateToAdmin : undefined}
+            adminEmail={adminUser?.email}
+            adminPhotoUrl={adminUser?.photoURL}
+            onSignOut={handleAdminSignOut}
             onSelectCategory={(cat) => {
               setSelectedCategory(cat);
               setSearchQuery('');
@@ -659,6 +718,20 @@ export default function App() {
             onSelectCategory={setSelectedCategory}
             categoryCounts={categoryCounts}
             categories={categories}
+          />
+
+          {/* Recommended right now Section */}
+          <RecommendedSection
+            platforms={platforms}
+            onSelectPlatform={setSelectedPlatform}
+            onSeeTop20={() => {
+              setSortBy('rating');
+              setIsEditorPickOnly(false);
+              const grid = document.querySelector('main');
+              if (grid) {
+                grid.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              }
+            }}
           />
 
           {/* Main Platforms Grid */}
@@ -694,6 +767,8 @@ export default function App() {
             }}
             onOpenSubscribe={() => setIsSubscribeOpen(true)}
             onOpenSubmitPlatform={() => setIsSubmitOpen(true)}
+            onNavigateAdmin={adminUser ? navigateToAdmin : undefined}
+            onOpenAdminLogin={navigateToAdmin}
           />
 
           {/* Floating Comparison Dock Bar */}

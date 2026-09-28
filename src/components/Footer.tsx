@@ -1,6 +1,6 @@
 import React from 'react';
 import { FutureToolsLogo } from './FutureToolsLogo';
-import { Sparkles, Mail, ShieldAlert, ShieldCheck, Moon, Sun } from 'lucide-react';
+import { Sparkles, Mail, ShieldAlert, ShieldCheck, Moon, Sun, Lock } from 'lucide-react';
 import { FINANCIAL_CATEGORIES } from '../data/financialPlatforms';
 
 interface FooterProps {
@@ -11,6 +11,7 @@ interface FooterProps {
   onOpenSubscribe: () => void;
   onOpenSubmitPlatform: () => void;
   onNavigateAdmin?: () => void;
+  onOpenAdminLogin?: () => void;
 }
 
 export const Footer: React.FC<FooterProps> = ({
@@ -21,6 +22,7 @@ export const Footer: React.FC<FooterProps> = ({
   onOpenSubscribe,
   onOpenSubmitPlatform,
   onNavigateAdmin,
+  onOpenAdminLogin,
 }) => {
   const activeCategories =
     categories && categories.length > 0
@@ -191,8 +193,18 @@ export const Footer: React.FC<FooterProps> = ({
 
         {/* Bottom Bar */}
         <div className="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800/80 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-400">
-          <div>
-            © {new Date().getFullYear()} INVESTigate Pro. All rights reserved.
+          <div className="flex items-center gap-2">
+            <span>© {new Date().getFullYear()} INVESTigate Pro. All rights reserved.</span>
+            {onOpenAdminLogin && (
+              <button
+                onClick={onOpenAdminLogin}
+                className="text-slate-300 dark:text-slate-700 hover:text-emerald-500 dark:hover:text-emerald-400 p-0.5 rounded transition-colors cursor-pointer"
+                title="Administrator Portal (/admin)"
+                aria-label="Admin Portal"
+              >
+                <Lock className="w-3 h-3" />
+              </button>
+            )}
           </div>
           <div className="flex items-center gap-4">
             <span>Verified Financial Platforms Database</span>

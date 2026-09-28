@@ -28,11 +28,17 @@ import {
   FolderTree,
   Tag,
   AlertCircle,
+  LogOut,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 
 interface AdminPanelProps {
   platforms: FinancialPlatform[];
   categories?: string[];
+  adminEmail?: string | null;
+  adminPhotoUrl?: string | null;
+  onSignOut?: () => void;
   onAddPlatform: (platform: FinancialPlatform) => void;
   onUpdatePlatform: (platform: FinancialPlatform) => void;
   onDeletePlatform: (platformId: string) => void;
@@ -80,6 +86,9 @@ const PRESET_LOGO_COLORS = [
 export const AdminPanel: React.FC<AdminPanelProps> = ({
   platforms,
   categories,
+  adminEmail,
+  adminPhotoUrl,
+  onSignOut,
   onAddPlatform,
   onUpdatePlatform,
   onDeletePlatform,
@@ -468,6 +477,22 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
       });
   }, [platforms, searchQuery, selectedCategory, selectedFeeTier, filterPickOnly, sortBy]);
 
+  // Table Pagination
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [pageSize, setPageSize] = useState<number>(10);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, selectedCategory, selectedFeeTier, filterPickOnly, sortBy]);
+
+  const totalAdminPages = Math.max(1, Math.ceil(filteredPlatforms.length / pageSize));
+  const safeAdminPage = Math.min(Math.max(1, currentPage), totalAdminPages);
+  const adminStartIndex = (safeAdminPage - 1) * pageSize;
+  const adminEndIndex = Math.min(adminStartIndex + pageSize, filteredPlatforms.length);
+  const paginatedAdminPlatforms = useMemo(() => {
+    return filteredPlatforms.slice(adminStartIndex, adminEndIndex);
+  }, [filteredPlatforms, adminStartIndex, adminEndIndex]);
+
   // Statistics
   const stats = useMemo(() => {
     const total = platforms.length;
@@ -558,25 +583,65 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
               <Plus className="w-4 h-4 stroke-[2.5]" />
               <span>+ Add New Platform</span>
             </button>
+
+            {/* Admin identity & Sign out */}
+            {adminEmail && (
+              <div className="flex items-center gap-2 pl-2 border-l border-slate-200 dark:border-slate-800">
+                {adminPhotoUrl ? (
+                  <img
+                    src={adminPhotoUrl}
+                    alt="Admin"
+                    className="w-7 h-7 rounded-full border border-emerald-500 object-cover shrink-0"
+                  />
+                ) : (
+                  <div className="w-7 h-7 rounded-full bg-emerald-600 text-white flex items-center justify-center text-xs font-bold shrink-0">
+                    A
+                  </div>
+                )}
+
+                <div className="hidden xl:flex flex-col text-left">
+                  <span className="text-[11px] font-semibold text-slate-800 dark:text-slate-200 leading-none truncate max-w-[130px]">
+                    Administrator
+                  </span>
+                  <span className="text-[9px] text-emerald-600 dark:text-emerald-400 font-bold uppercase tracking-wider mt-0.5">
+                    Admin Verified
+                  </span>
+                </div>
+
+                {onSignOut && (
+                  <button
+                    onClick={onSignOut}
+                    className="p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl border border-red-200 dark:border-red-900/50 bg-red-50 hover:bg-red-100 dark:bg-red-950/40 dark:hover:bg-red-900/60 text-red-700 dark:text-red-300 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+                    title="Sign out of Firebase admin session"
+                  >
+                    <LogOut className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline">Sign Out</span>
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
-        {/* Dedicated Admin Link Banner */}
+        {/* Dedicated Admin Link Banner with Firebase Protection Note */}
         <div className="bg-gradient-to-r from-emerald-50 via-teal-50 to-emerald-50 dark:from-emerald-950/40 dark:via-teal-950/30 dark:to-emerald-950/40 rounded-2xl p-4 sm:p-5 border border-emerald-200/90 dark:border-emerald-800/80 shadow-xs">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="space-y-1">
               <div className="flex items-center gap-2">
                 <span className="p-1.5 rounded-lg bg-emerald-600 text-white">
-                  <Lock className="w-4 h-4" />
+                  <ShieldCheck className="w-4 h-4" />
                 </span>
-                <h3 className="font-bold text-sm sm:text-base text-slate-900 dark:text-white">
-                  Direct Admin Access Route
+                <h3 className="font-bold text-sm sm:text-base text-slate-900 dark:text-white flex items-center gap-2">
+                  <span>Firebase Admin Verified Session</span>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
+                    High Security
+                  </span>
                 </h3>
               </div>
-              <p className="text-xs text-slate-600 dark:text-slate-300 max-w-2xl">
-                You can bookmark this URL or access the portal anytime via <span className="font-mono font-bold text-emerald-700 dark:text-emerald-400 bg-white/60 dark:bg-slate-900/60 px-1.5 py-0.5 rounded border border-emerald-300 dark:border-emerald-800">/admin</span> or click the button on the right to copy the direct link.
+              <p className="text-xs text-slate-600 dark:text-slate-300 max-w-2xl leading-relaxed">
+                Authenticated as Verified Administrator via Firebase Authentication. All administrative operations are authorized.
               </p>
             </div>
 
@@ -791,7 +856,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                     </td>
                   </tr>
                 ) : (
-                  filteredPlatforms.map((p) => (
+                  paginatedAdminPlatforms.map((p) => (
                     <tr
                       key={p.id}
                       className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors"
@@ -931,6 +996,63 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
               </tbody>
             </table>
           </div>
+
+          {/* Table Pagination Bar */}
+          {filteredPlatforms.length > 0 && (
+            <div className="px-4 py-3.5 border-t border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+              <div className="text-slate-500 dark:text-slate-400">
+                Showing <strong className="text-slate-900 dark:text-white">{adminStartIndex + 1}</strong> to{' '}
+                <strong className="text-slate-900 dark:text-white">{adminEndIndex}</strong> of{' '}
+                <strong className="text-slate-900 dark:text-white">{filteredPlatforms.length}</strong> platforms
+              </div>
+
+              <div className="flex items-center gap-3">
+                {/* Page Size Selector */}
+                <div className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400">
+                  <span>Per page:</span>
+                  <select
+                    value={pageSize}
+                    onChange={(e) => {
+                      setPageSize(Number(e.target.value));
+                      setCurrentPage(1);
+                    }}
+                    className="px-2 py-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-semibold text-slate-700 dark:text-slate-300 cursor-pointer shadow-2xs focus:outline-none"
+                  >
+                    <option value={10}>10</option>
+                    <option value={20}>20</option>
+                    <option value={50}>50</option>
+                  </select>
+                </div>
+
+                {/* Page Navigation */}
+                {totalAdminPages > 1 && (
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                      disabled={safeAdminPage === 1}
+                      className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                      title="Previous page"
+                    >
+                      <ChevronLeft className="w-3.5 h-3.5" />
+                    </button>
+
+                    <span className="px-2 font-medium text-slate-600 dark:text-slate-300">
+                      Page {safeAdminPage} of {totalAdminPages}
+                    </span>
+
+                    <button
+                      onClick={() => setCurrentPage((p) => Math.min(totalAdminPages, p + 1))}
+                      disabled={safeAdminPage === totalAdminPages}
+                      className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                      title="Next page"
+                    >
+                      <ChevronRight className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </main>
 

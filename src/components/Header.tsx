@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { FutureToolsLogo } from './FutureToolsLogo';
-import { Moon, Sun, ChevronDown, Plus, Sparkles, Newspaper, BookOpen, Calculator, ShieldCheck, Menu, X, Scale } from 'lucide-react';
+import { Moon, Sun, ChevronDown, Plus, Sparkles, Newspaper, BookOpen, Calculator, ShieldCheck, Menu, X, Scale, Flame } from 'lucide-react';
 
 interface HeaderProps {
   darkMode: boolean;
@@ -13,6 +13,9 @@ interface HeaderProps {
   comparedCount?: number;
   onOpenCompare?: () => void;
   onNavigateAdmin?: () => void;
+  adminEmail?: string | null;
+  adminPhotoUrl?: string | null;
+  onSignOut?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -26,6 +29,9 @@ export const Header: React.FC<HeaderProps> = ({
   comparedCount = 0,
   onOpenCompare,
   onNavigateAdmin,
+  adminEmail,
+  adminPhotoUrl,
+  onSignOut,
 }) => {
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -57,6 +63,20 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Center: Desktop Navigation */}
         <nav ref={navRef} className="hidden md:flex items-center gap-1 lg:gap-2">
+          {/* Recommended right now anchor */}
+          <button
+            onClick={() => {
+              const el = document.getElementById('recommended');
+              if (el) {
+                el.scrollIntoView({ behavior: 'smooth' });
+              }
+            }}
+            className="px-3.5 py-2 text-sm font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 rounded-lg hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition-colors flex items-center gap-1.5 cursor-pointer"
+          >
+            <Flame className="w-4 h-4 text-amber-500 fill-amber-500" />
+            <span>Recommended</span>
+          </button>
+
           {/* Market News Link */}
           <button
             onClick={() => {
@@ -219,15 +239,15 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Right: Actions */}
         <div className="flex items-center gap-2 sm:gap-3">
-          {/* Admin Portal Button */}
+          {/* Admin Portal Button (Active only when authenticated) */}
           {onNavigateAdmin && (
             <button
               onClick={onNavigateAdmin}
-              title="Admin management portal to manage all platforms (/admin)"
-              className="p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400 bg-slate-100/80 dark:bg-slate-800/80 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 border border-slate-200/60 dark:border-slate-700/60 transition-all duration-200 cursor-pointer flex items-center gap-1.5 text-xs font-semibold"
+              title="Access Admin Portal (/admin)"
+              className="px-2.5 py-1.5 rounded-xl text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/70 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 border border-emerald-300 dark:border-emerald-800 transition-all duration-200 cursor-pointer flex items-center gap-1.5 text-xs font-semibold shadow-2xs"
             >
-              <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-              <span className="hidden lg:inline text-[11px]">Admin</span>
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+              <span className="text-[11px]">Admin Mode</span>
             </button>
           )}
 
@@ -285,6 +305,20 @@ export const Header: React.FC<HeaderProps> = ({
               {darkMode ? 'Chuyển Sáng' : 'Chuyển Tối'}
             </button>
           </div>
+
+          <button
+            onClick={() => {
+              const el = document.getElementById('recommended');
+              if (el) {
+                el.scrollIntoView({ behavior: 'smooth' });
+              }
+              setMobileMenuOpen(false);
+            }}
+            className="w-full text-left px-3 py-2 rounded-lg text-emerald-600 dark:text-emerald-400 bg-emerald-50/50 dark:bg-emerald-950/30 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 font-semibold flex items-center gap-2"
+          >
+            <Flame className="w-4 h-4 text-amber-500 fill-amber-500" />
+            <span>Recommended right now</span>
+          </button>
 
           <button
             onClick={() => {
